@@ -1,0 +1,54 @@
+version: '3'
+
+services:
+  iac_zookeeper:
+    image: confluentinc/cp-zookeeper:7.2.5
+    hostname: iac_zookeeper
+    container_name: iac_zookeeper
+    ports:
+      - '2181:2181'
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  iac_kafka_server:
+    image: confluentinc/cp-server:7.2.5
+    hostname: iac_kafka_server
+    container_name: iac_kafka_server
+    depends_on:
+      - iac_zookeeper
+    ports:
+      - '9092:9092'
+      - '9101:9101'
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: iac_zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://iac_kafka_server:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_JMX_PORT: 9101
+      KAFKA_JMX_HOSTNAME: localhost
+      KAFKA_CONFLUENT_SCHEMA_REGISTRY_URL: http://iac_schema_registry:8082
+      CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: iac_kafka_server:29092
+      CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
+      CONFLUENT_METRICS_ENABLE: true
+      CONFLUENT_SUPPORT_CUSTOMER_ID: anonymous
+
+  iac_schema_registry:
+    image: confluentinc/cp-schema-registry:7.2.5
+    hostname: iac_schema_registry
+    container_name: iac_schema_registry
+    depends_on:
+      - iac_kafka_server
+    ports:
+      - '8082:8082'
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: iac_schema_registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: iac_kafka_server:29092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8082
